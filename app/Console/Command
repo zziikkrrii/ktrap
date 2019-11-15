@@ -1,0 +1,77 @@
+<?php
+
+namespace App\Console\Commands;
+
+use Telegram\Bot\Laravel\Facades\Telegram;
+use Illuminate\Console\Command;
+use App\AttackerLogin;
+use App\SeranganMasuk;
+use App\LogNotifikasi;
+
+class notifikasi extends Command
+{
+    /**
+     * The name and signature of the console command.
+     *
+     * @var string
+     */
+    protected $signature = 'do:notif';
+
+    /**
+     * The console command description.
+     *
+     * @var string
+     */
+    protected $description = 'Notifikasi Otomatis jika terjadi serangan';
+
+    /**
+     * Create a new command instance.
+     *
+     * @return void
+     */
+    public function __construct()
+    {
+        parent::__construct();
+    }
+
+    /**
+     * Execute the console command.
+     *
+     * @return mixed
+     */
+    public function handle()
+    {
+        //
+        // $serangan = AttackerLogin::where('notifikasi',0)
+        //     ->first();
+        $detail_penyerang = SeranganMasuk::where('notif',0)
+            ->first();
+        $text = "<b>Serangan baru Telah Masuk!!!</b>\n"
+            // . "Dengan keterangan sebagai berikut\n"
+            // . "Username : "
+            // . $serangan->username
+            // . " || Password : "
+            // . $serangan->password
+            . "\n IP Penyerang : "
+            . $detail_penyerang->ip
+            . "\n\n"
+            . "Serangan dimulai pada "
+            . $detail_penyerang->starttime
+            . "\nSerangan selesai pada "
+            . $detail_penyerang->endtime;
+
+        Telegram::sendMessage([
+            'chat_id' => env('TELEGRAM_CHANNEL_ID', '-1001198254211.0'),
+            'parse_mode' => 'HTML',
+            'text' => $text
+        ]);
+
+        SeranganMasuk::where('notif',0)
+            ->first()
+            ->update(['notifikasi' => 1]);
+
+        LogNotifikasi::insert(
+            ['id_session'=>$detail_penyerang->id,'timestamp'=>NOW()]
+        );
+    }
+}
